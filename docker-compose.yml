@@ -1,0 +1,91 @@
+# 啟動所有服務
+# docker-compose up -d
+
+services:
+  # Frontend Service - React App
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - REACT_APP_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+  # Backend Service - Express.js API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://appuser:apppassword@sqldb:3306/myapp_db
+      - MONGODB_URL=mongodb://admin:adminpassword@nosqldb:27017/myapp_db?authSource=admin
+    depends_on:
+      - sqldb
+      - nosqldb
+    networks:
+      - app-network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  # SQL Database - MySQL
+  sqldb:
+    build:
+      context: .
+      dockerfile: Dockerfile.sqldb
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=myapp_db
+      - MYSQL_USER=appuser
+      - MYSQL_PASSWORD=apppassword
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # NoSQL Database - MongoDB
+  nosqldb:
+    build:
+      context: .
+      dockerfile: Dockerfile.nosqldb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=adminpassword
+      - MONGO_INITDB_DATABASE=myapp_db
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    restart: unless-stopped
+
+# Define volumes for persistent data
+volumes:
+  mysql_data:
+    driver: local
+  mongodb_data:
+    driver: local
+
+# Define network for inter-service communication
+networks:
+  app-network:
+    driver: bridge
