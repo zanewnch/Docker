@@ -1,0 +1,95 @@
+# 啟動所有服務
+# docker-compose up -d
+
+version: '3.8'
+
+services:  # Frontend Service - React App
+  aiot-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: AIOT-Frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - REACT_APP_API_URL=http://localhost:8000
+    depends_on:
+      - aiot-backend
+    networks:
+      - app-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+  # Backend Service - Express.js API
+  aiot-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: AIOT-Backend
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://appuser:apppassword@aiot-mysql:3306/myapp_db
+      - MONGODB_URL=mongodb://admin:adminpassword@aiot-mongodb:27017/myapp_db?authSource=admin
+    depends_on:
+      - aiot-mysql
+      - aiot-mongodb
+    networks:
+      - app-network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  # SQL Database - MySQL
+  aiot-mysql:
+    build:
+      context: .
+      dockerfile: Dockerfile.sqldb
+    container_name: AIOT-MYSQL
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=myapp_db
+      - MYSQL_USER=appuser
+      - MYSQL_PASSWORD=apppassword
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # NoSQL Database - MongoDB
+  aiot-mongodb:
+    build:
+      context: .
+      dockerfile: Dockerfile.nosqldb
+    container_name: AIOT-MONGODB
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=adminpassword
+      - MONGO_INITDB_DATABASE=myapp_db
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    restart: unless-stopped
+
+# Define volumes for persistent data
+volumes:
+  mysql_data:
+    driver: local
+  mongodb_data:
+    driver: local
+
+# Define network for inter-service communication
+networks:
+  app-network:
+    driver: bridge
