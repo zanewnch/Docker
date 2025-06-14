@@ -3,11 +3,12 @@
 
 version: '3.8'
 
-services:  # Frontend Service - React App
+services:
+  # Frontend Service - React App
   aiot-frontend:
     build:
-      context: .
-      dockerfile: Dockerfile.frontend
+      context: ./frontend
+      dockerfile: ../Dockerfile.frontend
     container_name: AIOT-Frontend
     ports:
       - "3000:3000"
@@ -21,11 +22,12 @@ services:  # Frontend Service - React App
     volumes:
       - ./frontend:/app
       - /app/node_modules
+
   # Backend Service - Express.js API
   aiot-backend:
     build:
-      context: .
-      dockerfile: Dockerfile.backend
+      context: ./backend
+      dockerfile: ../Dockerfile.backend
     container_name: AIOT-Backend
     ports:
       - "8000:8000"
