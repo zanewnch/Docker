@@ -29,7 +29,7 @@ services: # 定義所有要運行的服務（容器）
     depends_on:
       - aiot-backend 
     networks:
-      - app-network # 指定使用的網路
+      - aiot-compose-network # 指定使用的網路
     volumes:
       - ./frontend:/app # 將本地 frontend 資料夾掛載到容器 /app
       - /app/node_modules # 保持 node_modules 不被本地覆蓋
@@ -50,7 +50,7 @@ services: # 定義所有要運行的服務（容器）
       - aiot-mysql # 啟動後端前需先啟動 MySQL
       - aiot-mongodb # 啟動後端前需先啟動 MongoDB
     networks:
-      - app-network # 指定使用的網路
+      - aiot-compose-network 
     volumes:
       - ./backend:/app # 將本地 backend 資料夾掛載到容器 /app
       - /app/node_modules # 保持 node_modules 不被本地覆蓋
@@ -98,11 +98,22 @@ services: # 定義所有要運行的服務（容器）
 # 定義持久化資料的 volumes
 volumes:
   mysql_data:
-    driver: local # 使用本地磁碟作為儲存
+  # the local in this property means store the data with volume format in local device but not with format of mysqldata or mongodbdata
+  # so I do not need to set the relative config of mysql or mongodb in the local device, because I build these containers to handle these
+  # the docker will make these containers to access the volume which stored in the local device to be the db data
+    driver: local 
   mongodb_data:
-    driver: local # 使用本地磁碟作為儲存
+    driver: local 
 
-# 定義服務間通訊的網路
+# the networks section is how the containers communicate with each other in this same group, and which need to be defined by myself
 networks:
-  app-network:
+  # here is the tailored name designed by myself for the network
+  aiot-compose-network:
+  # in this context, the driver means the type of network, not the general meaning of driver as I know
+  # for local device development, using the bridge network is the appropriate choice
+  # another choice is host, but which is used for share the device's network stack
     driver: bridge # 使用 bridge 網路模式
+
+
+# appendix:
+#  the volume is a mechanism, not a type of container; and which store the data or any file outside the container permanently
