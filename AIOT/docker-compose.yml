@@ -1,97 +1,108 @@
-# 啟動所有服務
-# docker-compose up -d
+# docker-compose.yml 用於定義和管理多個 Docker 容器服務的配置。
+# 使用 'docker-compose up -d' 可以根據此文件啟動所有定義的服務。
 
-version: '3.8'
+version: "3.8" # 指定 Docker Compose 的版本
 
-services:
-  # Frontend Service - React App
+
+# services is all container I want to build in this group
+services: # 定義所有要運行的服務（容器）
+  # 前端服務 - React 應用
   aiot-frontend:
     build:
-      context: ./frontend
-      dockerfile: ../Dockerfile.frontend
-    container_name: AIOT-Frontend
+      # the context property is specifies the folder I want to use, like the command COPY and ADD in dockerfile are based on this context folder 
+      context: ./frontend 
+      dockerfile: ../Dockerfile.frontend # 指定 Dockerfile 路徑
+    container_name: AIOT-Frontend # 指定容器名稱
     ports:
-      - "3000:3000"
+      - "3000:3000" # 將主機的 3000 端口映射到容器的 3000 端口
+    # environment means the environment variables 
     environment:
-      - NODE_ENV=production
-      - REACT_APP_API_URL=http://localhost:8000
-    depends_on:
-      - aiot-backend
-    networks:
-      - app-network
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+    # the option of NODE_ENV has production and development, 
+    # the production one would optimize and cancel the debug log
+    # and the development one would keep the debug log and enable the hot reload
+      - NODE_ENV=development # 設定環境變數為開發環境
 
-  # Backend Service - Express.js API
+    # since the docker compose, the fe container would auto recognize the be container's name, like aiot-backend
+    # so in the react project, I just need to set the url like http://aiot-backend:8000/api
+
+    # depend_on is the property that specifies the which container should be started before this container
+    depends_on:
+      - aiot-backend 
+    networks:
+      - app-network # 指定使用的網路
+    volumes:
+      - ./frontend:/app # 將本地 frontend 資料夾掛載到容器 /app
+      - /app/node_modules # 保持 node_modules 不被本地覆蓋
+
+  # 後端服務 - Express.js API
   aiot-backend:
     build:
-      context: ./backend
-      dockerfile: ../Dockerfile.backend
-    container_name: AIOT-Backend
+      context: ./backend # 指定 Dockerfile 構建上下文目錄
+      dockerfile: ../Dockerfile.backend # 指定 Dockerfile 路徑
+    container_name: AIOT-Backend # 指定容器名稱
     ports:
-      - "8000:8000"
+      - "8000:8000" # 將主機的 8000 端口映射到容器的 8000 端口
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=mysql://appuser:apppassword@aiot-mysql:3306/myapp_db
-      - MONGODB_URL=mongodb://admin:adminpassword@aiot-mongodb:27017/myapp_db?authSource=admin
+      - NODE_ENV=production # 設定環境變數為生產環境
+      - DATABASE_URL=mysql://appuser:apppassword@aiot-mysql:3306/myapp_db # MySQL 資料庫連線字串
+      - MONGODB_URL=mongodb://admin:adminpassword@aiot-mongodb:27017/myapp_db?authSource=admin # MongoDB 連線字串
     depends_on:
-      - aiot-mysql
-      - aiot-mongodb
+      - aiot-mysql # 啟動後端前需先啟動 MySQL
+      - aiot-mongodb # 啟動後端前需先啟動 MongoDB
     networks:
-      - app-network
+      - app-network # 指定使用的網路
     volumes:
-      - ./backend:/app
-      - /app/node_modules
-    restart: unless-stopped
+      - ./backend:/app # 將本地 backend 資料夾掛載到容器 /app
+      - /app/node_modules # 保持 node_modules 不被本地覆蓋
+    restart: unless-stopped # 當容器異常停止時自動重啟
 
-  # SQL Database - MySQL
+  # SQL 資料庫服務 - MySQL
   aiot-mysql:
     build:
-      context: .
-      dockerfile: Dockerfile.sqldb
-    container_name: AIOT-MYSQL
+      context: . # 使用當前目錄作為構建上下文
+      dockerfile: Dockerfile.sqldb # 指定 MySQL 的 Dockerfile
+    container_name: AIOT-MYSQL # 指定容器名稱
     ports:
-      - "3306:3306"
+      - "3306:3306" # 將主機的 3306 端口映射到容器的 3306 端口
     environment:
-      - MYSQL_ROOT_PASSWORD=rootpassword
-      - MYSQL_DATABASE=myapp_db
-      - MYSQL_USER=appuser
-      - MYSQL_PASSWORD=apppassword
+      - MYSQL_ROOT_PASSWORD=rootpassword # MySQL root 使用者密碼
+      - MYSQL_DATABASE=myapp_db # 預設建立的資料庫名稱
+      - MYSQL_USER=appuser # 新增的使用者名稱
+      - MYSQL_PASSWORD=apppassword # 新增使用者的密碼
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ./mysql-scripts:/docker-entrypoint-initdb.d
+      - mysql_data:/var/lib/mysql # 使用 volume 儲存 MySQL 資料
+      - ./mysql-scripts:/docker-entrypoint-initdb.d # 啟動時執行初始化 SQL 腳本
     networks:
-      - app-network
-    restart: unless-stopped
+      - app-network # 指定使用的網路
+    restart: unless-stopped # 異常停止時自動重啟
 
-  # NoSQL Database - MongoDB
+  # NoSQL 資料庫服務 - MongoDB
   aiot-mongodb:
     build:
-      context: .
-      dockerfile: Dockerfile.nosqldb
-    container_name: AIOT-MONGODB
+      context: . # 使用當前目錄作為構建上下文
+      dockerfile: Dockerfile.nosqldb # 指定 MongoDB 的 Dockerfile
+    container_name: AIOT-MONGODB # 指定容器名稱
     ports:
-      - "27017:27017"
+      - "27017:27017" # 將主機的 27017 端口映射到容器的 27017 端口
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=adminpassword
-      - MONGO_INITDB_DATABASE=myapp_db
+      - MONGO_INITDB_ROOT_USERNAME=admin # MongoDB root 使用者名稱
+      - MONGO_INITDB_ROOT_PASSWORD=adminpassword # root 使用者密碼
+      - MONGO_INITDB_DATABASE=myapp_db # 預設建立的資料庫名稱
     volumes:
-      - mongodb_data:/data/db
-      - ./mongo-scripts:/docker-entrypoint-initdb.d
+      - mongodb_data:/data/db # 使用 volume 儲存 MongoDB 資料
+      - ./mongo-scripts:/docker-entrypoint-initdb.d # 啟動時執行初始化腳本
     networks:
-      - app-network
-    restart: unless-stopped
+      - app-network # 指定使用的網路
+    restart: unless-stopped # 異常停止時自動重啟
 
-# Define volumes for persistent data
+# 定義持久化資料的 volumes
 volumes:
   mysql_data:
-    driver: local
+    driver: local # 使用本地磁碟作為儲存
   mongodb_data:
-    driver: local
+    driver: local # 使用本地磁碟作為儲存
 
-# Define network for inter-service communication
+# 定義服務間通訊的網路
 networks:
   app-network:
-    driver: bridge
+    driver: bridge # 使用 bridge 網路模式
