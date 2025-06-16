@@ -11,7 +11,7 @@ services: # 定義所有要運行的服務（容器）
     build:
       # the context property is specifies the folder I want to use, like the command COPY and ADD in dockerfile are based on this context folder 
       context: ./frontend 
-      dockerfile: ../Dockerfile.frontend # 指定 Dockerfile 路徑
+      dockerfile: ../Dockerfile.fe # 指定 Dockerfile 路徑
     container_name: AIOT-Frontend # 指定容器名稱
     ports:
       - "3000:3000" # 將主機的 3000 端口映射到容器的 3000 端口
@@ -38,7 +38,7 @@ services: # 定義所有要運行的服務（容器）
   aiot-backend:
     build:
       context: ./backend # 指定 Dockerfile 構建上下文目錄
-      dockerfile: ../Dockerfile.backend # 指定 Dockerfile 路徑
+      dockerfile: ../Dockerfile.be # 指定 Dockerfile 路徑
     container_name: AIOT-Backend # 指定容器名稱
     ports:
       - "8000:8000" # 將主機的 8000 端口映射到容器的 8000 端口

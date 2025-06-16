@@ -1,0 +1,39 @@
+# just remember that fact is, mongodb is differ from mysql, it needs a initialization script, I forget the reason, but it just needs it
+
+# NoSQL Database Dockerfile - MongoDB
+FROM mongo:7.0
+
+# Set environment variables
+ENV MONGO_INITDB_ROOT_USERNAME=admin
+ENV MONGO_INITDB_ROOT_PASSWORD=adminpassword
+ENV MONGO_INITDB_DATABASE=myapp_db
+
+# Create data directory
+RUN mkdir -p /data/db
+
+# Copy initialization scripts
+COPY ./mongo-scripts/ /docker-entrypoint-initdb.d/
+
+# Create a custom MongoDB configuration
+RUN echo 'storage:' > /etc/mongod.conf && \
+    echo '  dbPath: /data/db' >> /etc/mongod.conf && \
+    echo '  journal:' >> /etc/mongod.conf && \
+    echo '    enabled: true' >> /etc/mongod.conf && \
+    echo 'systemLog:' >> /etc/mongod.conf && \
+    echo '  destination: file' >> /etc/mongod.conf && \
+    echo '  logAppend: true' >> /etc/mongod.conf && \
+    echo '  path: /var/log/mongodb/mongod.log' >> /etc/mongod.conf && \
+    echo 'net:' >> /etc/mongod.conf && \
+    echo '  port: 27017' >> /etc/mongod.conf && \
+    echo '  bindIp: 0.0.0.0' >> /etc/mongod.conf
+
+# Create log directory
+RUN mkdir -p /var/log/mongodb && \
+    chown mongodb:mongodb /var/log/mongodb
+
+# Expose MongoDB port
+EXPOSE 27017
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet || exit 1
