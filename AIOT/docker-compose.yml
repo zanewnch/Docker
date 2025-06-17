@@ -1,5 +1,5 @@
 # docker-compose.yml 用於定義和管理多個 Docker 容器服務的配置。
-# 使用 'docker-compose up -d' 可以根據此文件啟動所有定義的服務。
+# 使用 'docker compose up' 可以根據此文件啟動所有定義的服務。
 
 x-logging: &default-logging
   driver: "json-file"
