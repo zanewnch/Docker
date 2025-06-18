@@ -34,9 +34,9 @@ services: # 定義所有要運行的服務（容器）
       - aiot-backend 
     networks:
       - aiot-compose-network # 指定使用的網路
-    volumes:
-      - ../../AIOT/fe:/app # 將本地 frontend 資料夾掛載到容器 /app
-      - /app/node_modules # 保持 node_modules 不被本地覆蓋
+    # volumes:
+      # - ../../AIOT/fe:/app # 將本地 frontend 資料夾掛載到容器 /app
+      # - /app/node_modules # 保持 node_modules 不被本地覆蓋
     restart: unless-stopped # 當容器異常停止時自動重啟
 
   # 後端服務 - Express.js API
@@ -59,9 +59,9 @@ services: # 定義所有要運行的服務（容器）
        condition: service_healthy # 確保 MongoDB 健康檢查通過
     networks:
       - aiot-compose-network 
-    volumes:
-      - ../../AIOT/be:/app # 將本地 backend 資料夾掛載到容器 /app
-      - /app/node_modules # 保持 node_modules 不被本地覆蓋
+    # volumes:
+      # - ../../AIOT/be:/app # 將本地 backend 資料夾掛載到容器 /app
+      # - /app/node_modules # 保持 node_modules 不被本地覆蓋
     restart: unless-stopped # 當容器異常停止時自動重啟
 
   # SQL 資料庫服務 - MySQL
@@ -100,7 +100,7 @@ services: # 定義所有要運行的服務（容器）
     networks:
       - aiot-compose-network # 指定使用的網路
     healthcheck:
-      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD", "mongosh", "-u", "admin", "-p", "admin", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
