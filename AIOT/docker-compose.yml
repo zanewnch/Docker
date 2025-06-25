@@ -35,8 +35,8 @@ services: # 定義所有要運行的服務（容器）
     networks:
       - aiot-compose-network # 指定使用的網路
     volumes:
-      - ../../AIOT/fe:/app # 將本地 frontend 資料夾掛載到容器 /app
-      - /app/node_modules # 保持 node_modules 不被本地覆蓋
+      - ../../AIOT:/app # 將本地 AIOT 整個資料夾掛載到容器 /app
+      - /app/fe/node_modules # 保持 node_modules 不被本地覆蓋
     restart: unless-stopped # 當容器異常停止時自動重啟
 
   # 後端服務 - Express.js API
@@ -53,16 +53,22 @@ services: # 定義所有要運行的服務（容器）
       - NODE_ENV=development # 設定環境變數為開發環境
       - DATABASE_URL=mysql://admin:admin@aiot-mysqldb:3306/main_db # MySQL 資料庫連線字串
       - MONGODB_URL=mongodb://admin:admin@aiot-mongodb:27017/main_db?authSource=admin # MongoDB 連線字串
+      - REDIS_URL=redis://aiot-redis:6379/0
+      - RABBITMQ_URL=amqp://admin:admin@aiot-rabbitmq:5672/
     depends_on:
       aiot-mysqldb:  # 啟動後端前需先啟動 MySQL
        condition: service_healthy # 確保 MySQL 健康檢查通過
       aiot-mongodb: # 啟動後端前需先啟動 MongoDB
        condition: service_healthy # 確保 MongoDB 健康檢查通過
+      aiot-redis: # 啟動後端前需先啟動 Redis
+        condition: service_started # 確保 Redis 已啟動
+      aiot-rabbitmq: # 啟動後端前需先啟動 RabbitMQ
+        condition: service_started # 確保 RabbitMQ 已啟動
     networks:
       - aiot-compose-network 
     volumes:
-      - ../../AIOT/be:/app # 將本地 backend 資料夾掛載到容器 /app
-      - /app/node_modules # 保持 node_modules 不被本地覆蓋
+      - ../../AIOT:/app # 將本地 AIOT 整個資料夾掛載到容器 /app
+      - /app/be/node_modules # 保持 node_modules 不被本地覆蓋
     restart: unless-stopped # 當容器異常停止時自動重啟
 
   # SQL 資料庫服務 - MySQL
@@ -107,6 +113,37 @@ services: # 定義所有要運行的服務（容器）
       retries: 5
     restart: unless-stopped # 異常停止時自動重啟
 
+  # Redis 快取服務 server
+  aiot-redis:
+    logging: *default-logging
+    image: redis:latest
+    container_name: AIOT-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - aiot-compose-network
+    restart: unless-stopped
+
+
+  # RabbitMQ 消息隊列服務
+  aiot-rabbitmq:
+    logging: *default-logging
+    image: rabbitmq:3-management
+    container_name: AIOT-rabbitmq
+    ports:
+      - "5672:5672"    # AMQP protocol
+      - "15672:15672"  # Management UI
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - aiot-compose-network
+    restart: unless-stopped
+
 # 定義持久化資料的 volumes
 volumes:
   mysql_data:
@@ -116,6 +153,10 @@ volumes:
     driver: local 
   mongodb_data:
     driver: local 
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
 
 # the networks section is how the containers communicate with each other in this same group, and which need to be defined by myself
 networks:

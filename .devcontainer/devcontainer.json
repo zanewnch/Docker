@@ -1,10 +1,10 @@
 {
   "name": "AIOT Development Environment",
   "dockerComposeFile": [
-    "../Docker/AIOT/docker-compose.yml"
+    "../AIOT/docker-compose.yml"
   ],
   "service": "aiot-frontend",
-  "workspaceFolder": "/app",
+  "workspaceFolder": "/app/fe",
   "shutdownAction": "stopCompose",
   
   "settings": {
@@ -30,7 +30,7 @@
     }
   },
   
-  "postCreateCommand": "npm install",
+  "postCreateCommand": "cd /app/fe && npm install",
   
   "remoteUser": "node"
 } 
