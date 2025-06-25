@@ -89,6 +89,8 @@ services: # 定義所有要運行的服務（容器）
     healthcheck:
       test:
         [
+
+
           "CMD",
           "mysqladmin",
           "ping",
