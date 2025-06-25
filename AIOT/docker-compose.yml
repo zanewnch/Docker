@@ -21,9 +21,9 @@ services: # 定義所有要運行的服務（容器）
       - "3000:3000" # 將主機的 3000 端口映射到容器的 3000 端口
     # environment means the environment variables
     environment:
-    # the option of NODE_ENV has production and development,
-    # the production one would optimize and cancel the debug log
-    # and the development one would keep the debug log and enable the hot reload
+      # the option of NODE_ENV has production and development,
+      # the production one would optimize and cancel the debug log
+      # and the development one would keep the debug log and enable the hot reload
       - NODE_ENV=development # 設定環境變數為開發環境
 
     # since the docker compose, the fe container would auto recognize the be container's name, like aiot-backend
@@ -56,10 +56,10 @@ services: # 定義所有要運行的服務（容器）
       - REDIS_URL=redis://aiot-redis:6379/0
       - RABBITMQ_URL=amqp://admin:admin@aiot-rabbitmq:5672/
     depends_on:
-      aiot-mysqldb:  # 啟動後端前需先啟動 MySQL
-       condition: service_healthy # 確保 MySQL 健康檢查通過
+      aiot-mysqldb: # 啟動後端前需先啟動 MySQL
+        condition: service_healthy # 確保 MySQL 健康檢查通過
       aiot-mongodb: # 啟動後端前需先啟動 MongoDB
-       condition: service_healthy # 確保 MongoDB 健康檢查通過
+        condition: service_healthy # 確保 MongoDB 健康檢查通過
       aiot-redis: # 啟動後端前需先啟動 Redis
         condition: service_started # 確保 Redis 已啟動
       aiot-rabbitmq: # 啟動後端前需先啟動 RabbitMQ
@@ -87,7 +87,17 @@ services: # 定義所有要運行的服務（容器）
     networks:
       - aiot-compose-network # 指定使用的網路
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "admin", "-padmin"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "admin",
+          "-padmin",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -107,7 +117,19 @@ services: # 定義所有要運行的服務（容器）
     networks:
       - aiot-compose-network # 指定使用的網路
     healthcheck:
-      test: ["CMD", "mongosh", "-u", "admin", "-p", "admin", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')"]
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "-u",
+          "admin",
+          "-p",
+          "admin",
+          "--authenticationDatabase",
+          "admin",
+          "--eval",
+          "db.adminCommand('ping')",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -126,15 +148,14 @@ services: # 定義所有要運行的服務（容器）
       - aiot-compose-network
     restart: unless-stopped
 
-
   # RabbitMQ 消息隊列服務
   aiot-rabbitmq:
     logging: *default-logging
     image: rabbitmq:3-management
     container_name: AIOT-rabbitmq
     ports:
-      - "5672:5672"    # AMQP protocol
-      - "15672:15672"  # Management UI
+      - "5672:5672" # AMQP protocol
+      - "15672:15672" # Management UI
     environment:
       - RABBITMQ_DEFAULT_USER=admin
       - RABBITMQ_DEFAULT_PASS=admin
@@ -147,22 +168,25 @@ services: # 定義所有要運行的服務（容器）
 # 定義持久化資料的 volumes
 volumes:
   mysql_data:
-  # the local in this property means store the data with volume format in local device but not with format of mysqldata or mongodbdata
-  # so I do not need to set the relative config of mysql or mongodb in the local device, because I build these containers to handle these
-  # the docker will make these containers to access the volume which stored in the local device to be the db data
+    # the local in this property means store the data with volume format in local device but not with format of mysqldata or mongodbdata
+    # so I do not need to set the relative config of mysql or mongodb in the local device, because I build these containers to handle these
+    # the docker will make these containers to access the volume which stored in the local device to be the db data
     driver: local
   mongodb_data:
-    driver: local 
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
 
 # the networks section is how the containers communicate with each other in this same group, and which need to be defined by myself
 networks:
   # here is the tailored name designed by myself for the network
   aiot-compose-network:
-  # in this context, the driver means the type of network, not the general meaning of driver as I know
-  # for local device development, using the bridge network is the appropriate choice
-  # another choice is host, but which is used for share the device's network stack
+    # in this context, the driver means the type of network, not the general meaning of driver as I know
+    # for local device development, using the bridge network is the appropriate choice
+    # another choice is host, but which is used for share the device's network stack
     driver: bridge # 使用 bridge 網路模式
-
 
 # appendix:
 #  the volume is a mechanism, not a type of container; and which store the data or any file outside the container permanently
