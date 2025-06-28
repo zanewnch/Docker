@@ -80,7 +80,7 @@ services: # 定義所有要運行的服務（容器）
       dockerfile: ./Dockerfile.githubPage
     container_name: AIOT-githubpage
     ports:
-      - "3001:3000"
+      - "3001:3001"
     environment:
       - NODE_ENV=development
     networks:
