@@ -71,6 +71,25 @@ services: # 定義所有要運行的服務（容器）
       - /app/be/node_modules # 保持 node_modules 不被本地覆蓋
     restart: unless-stopped # 當容器異常停止時自動重啟
 
+
+    # GitHub Page service
+  aiot-githubpage:
+    logging: *default-logging
+    build:
+      context: ../../AIOT/githubPage
+      dockerfile: ./Dockerfile.githubPage
+    container_name: AIOT-githubpage
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+    networks:
+      - aiot-compose-network
+    volumes:
+      - ../../AIOT:/app # 將本地 AIOT 整個資料夾掛載到容器 /app
+      - /app/githubPage/node_modules # 保持 node_modules 不被本地覆蓋
+    restart: unless-stopped
+
   # SQL 資料庫服務 - MySQL
   aiot-mysqldb:
     logging: *default-logging # 使用預設的日誌配置
@@ -166,6 +185,8 @@ services: # 定義所有要運行的服務（容器）
     networks:
       - aiot-compose-network
     restart: unless-stopped
+
+  
 
 # 定義持久化資料的 volumes
 volumes:
