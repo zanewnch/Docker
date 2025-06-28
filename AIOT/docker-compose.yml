@@ -29,6 +29,9 @@ services: # 定義所有要運行的服務（容器）
     # since the docker compose, the fe container would auto recognize the be container's name, like aiot-backend
     # so in the react project, I just need to set the url like http://aiot-backend:8000/api
 
+    # 手動控制服務啟動 - 註解掉此行可恢復自動啟動
+    command: ["tail", "-f", "/dev/null"]
+    
     # depend_on is the property that specifies the which container should be started before this container
     depends_on:
       - aiot-backend
@@ -55,6 +58,11 @@ services: # 定義所有要運行的服務（容器）
       - MONGODB_URL=mongodb://admin:admin@aiot-mongodb:27017/main_db?authSource=admin # MongoDB 連線字串
       - REDIS_URL=redis://aiot-redis:6379/0
       - RABBITMQ_URL=amqp://admin:admin@aiot-rabbitmq:5672/
+    
+    # 手動控制服務啟動 - 註解掉此行可恢復自動啟動
+    # 因為所使用的image, 本身就會auto run server port, 但是我想要手動控制server port 開關，所以需要加上這一行來讓 container not to auto run server port
+    command: ["tail", "-f", "/dev/null"]
+    
     depends_on:
       aiot-mysqldb: # 啟動後端前需先啟動 MySQL
         condition: service_healthy # 確保 MySQL 健康檢查通過
@@ -80,9 +88,13 @@ services: # 定義所有要運行的服務（容器）
       dockerfile: ./Dockerfile.githubPage
     container_name: AIOT-githubpage
     ports:
-      - "3001:3001"
+      - "3001:3001" 
     environment:
       - NODE_ENV=development
+    
+    # 手動控制服務啟動 - 註解掉此行可恢復自動啟動
+    command: ["tail", "-f", "/dev/null"]
+    
     networks:
       - aiot-compose-network
     volumes:
@@ -189,7 +201,7 @@ services: # 定義所有要運行的服務（容器）
 # 定義持久化資料的 volumes
 volumes:
   mysql_data:
-    # the local in this property means store the data with volume format in local device but not with format of mysqldata or mongodbdata
+    # the local in this property means store the data with volume format in local device but no        t with format of mysqldata or mongodbdata
     # so I do not need to set the relative config of mysql or mongodb in the local device, because I build these containers to handle these
     # the docker will make these containers to access the volume which stored in the local device to be the db data
     driver: local
