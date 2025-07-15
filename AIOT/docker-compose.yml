@@ -179,6 +179,11 @@ services: # 定義所有要運行的服務（容器）
     networks:
       - aiot-compose-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   # Ollama AI 服務 - 支援 NPU 加速
   # 目前wsl2 沒辦法支援 intel npu
