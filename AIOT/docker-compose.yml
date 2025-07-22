@@ -185,63 +185,27 @@ services: # 定義所有要運行的服務（容器）
       timeout: 10s
       retries: 5
 
-  # Ollama AI 服務 - 支援 NPU 加速
-  # 目前wsl2 沒辦法支援 intel npu
-  aiot-ollama:
+  # LLM 服務 - Django
+  aiot-llm:
     logging: *default-logging
-    image: ollama/ollama:latest
-    container_name: AIOT-ollama
+    build:
+      context: ../../AIOT/llm
+      dockerfile: ./Dockerfile.llm
+    container_name: AIOT-llm
     ports:
-      - "11434:11434" # Ollama API 端口
+      - "8020:8020" # Django 端口
     environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-      - OLLAMA_ORIGINS=*
-      # NPU 相關環境變數
-      - OLLAMA_NUM_PARALLEL=1
-      - OLLAMA_MAX_LOADED_MODELS=1
-      - OLLAMA_FLASH_ATTENTION=1
-      # 針對 NPU 的記憶體管理
-      - OLLAMA_MAX_VRAM=0 # 讓 Ollama 自動檢測可用記憶體
-      # Intel NPU 特定設定
-      - INTEL_NPU_ACCELERATION=1
-      - OPENVINO_DEVICE=NPU
-      - LEVEL_ZERO_ENABLE=1
+      - DJANGO_SETTINGS_MODULE=llm.settings
+      - DEBUG=True
+      - DATABASE_URL=sqlite:///db.sqlite3
+      - OLLAMA_URL=http://host.docker.internal:11434 # 連接到主機上的 Ollama
     volumes:
-      - ollama_data:/root/.ollama # 儲存模型數據
-      # NPU 驅動和庫文件掛載（根據實際 NPU 調整）
-      - /usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu:ro
-      - /lib/firmware:/lib/firmware:ro
-      # 持久化 NPU 配置文件
-      - ./config/ollama:/opt/ollama-config:ro
-      - ./config/ollama/setup-npu.sh:/usr/local/bin/setup-npu.sh:ro
+      - ../../AIOT/llm:/app
     networks:
       - aiot-compose-network
-    # NPU 設備支援配置
-    devices:
-      - /dev/dxg:/dev/dxg # Windows DirectX Graphics Kernel for NPU
-      # Intel NPU 設備映射（根據實際可用設備調整）
-      # - /dev/npu0:/dev/npu0 # Linux NPU 設備
-      # - /dev/accel0:/dev/accel0 # Intel NPU accelerator
-      # - /dev/intel-npu:/dev/intel-npu # Intel NPU 專用設備
-    privileged: true # 給予特權模式以存取硬體設備
-    # 針對不同 NPU 的運行時配置（取消註解適用的選項）
-    # runtime: nvidia # NVIDIA GPU
-    # runtime: runc # 默認運行時
-    security_opt:
-      - seccomp:unconfined # 允許更多系統調用
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/version"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    # 手動控制服務啟動
+    command: ["tail", "-f", "/dev/null"]
     restart: unless-stopped
-    # NPU 初始化命令（在容器啟動後執行）
-    entrypoint: ["/bin/sh", "-c"]
-    command: ["/usr/local/bin/setup-npu.sh && exec /bin/ollama serve"]
 
   
 
@@ -257,8 +221,6 @@ volumes:
   redis_data:
     driver: local
   rabbitmq_data:
-    driver: local
-  ollama_data:
     driver: local
 
 # the networks section is how the containers communicate with each other in this same group, and which need to be defined by myself
