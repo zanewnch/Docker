@@ -30,7 +30,7 @@ services: # 定義所有要運行的服務（容器）
     # so in the react project, I just need to set the url like http://aiot-backend:8000/api
 
     # 手動控制服務啟動 - 註解掉此行可恢復自動啟動
-    command: ["tail", "-f", "/dev/null"]
+    # command: ["tail", "-f", "/dev/null"]
     
     # depend_on is the property that specifies the which container should be started before this container
     depends_on:
@@ -58,10 +58,11 @@ services: # 定義所有要運行的服務（容器）
       - MONGODB_URL=mongodb://admin:admin@aiot-mongodb:27017/main_db?authSource=admin # MongoDB 連線字串
       - REDIS_URL=redis://aiot-redis:6379/0
       - RABBITMQ_URL=amqp://admin:admin@aiot-rabbitmq:5672/
+      - OLLAMA_URL=http://host.docker.internal:11434  # 指向 Windows 原生 Ollama
     
     # 手動控制服務啟動 - 註解掉此行可恢復自動啟動
     # 因為所使用的image, 本身就會auto run server port, 但是我想要手動控制server port 開關，所以需要加上這一行來讓 container not to auto run server port
-    command: ["tail", "-f", "/dev/null"]
+    # command: ["tail", "-f", "/dev/null"]
     
     depends_on:
       aiot-mysqldb: # 啟動後端前需先啟動 MySQL
@@ -79,11 +80,36 @@ services: # 定義所有要運行的服務（容器）
       - /app/be/node_modules # 保持 node_modules 不被本地覆蓋
     restart: unless-stopped # 當容器異常停止時自動重啟
 
+  # LLM 服務 - Django
+  aiot-llm:
+    logging: *default-logging
+    build:
+      context: ../../AIOT/llm
+      dockerfile: ./Dockerfile.llm
+    container_name: AIOT-llm
+    ports:
+      - "8020:8020" # Django 端口
+    environment:
+      - DJANGO_SETTINGS_MODULE=llm.settings
+      - DEBUG=True
+      - DATABASE_URL=sqlite:///db.sqlite3
+      - OLLAMA_URL=http://host.docker.internal:11434 # 連接到主機上的 Ollama
+    volumes:
+      - ../../AIOT/llm:/app
+    networks:
+      - aiot-compose-network
+    # 手動控制服務啟動
+    # command: ["tail", "-f", "/dev/null"]
+    restart: unless-stopped
+
+  
   # SQL 資料庫服務 - MySQL
   aiot-mysqldb:
     logging: *default-logging # 使用預設的日誌配置
     image: mysql:latest # using the latest official mysql image
     container_name: AIOT-mysqldb # 指定容器名稱
+    ports:
+      - "3306:3306" # 將主機的 3306 端口映射到容器的 3306 端口
     environment:
       - MYSQL_USER=admin # 新增的使用者名稱
       - MYSQL_ROOT_PASSWORD=admin # MySQL root 使用者密碼
@@ -116,6 +142,8 @@ services: # 定義所有要運行的服務（容器）
     logging: *default-logging # 使用預設的日誌配置
     image: mongo:latest # using the latest official mongo image
     container_name: AIOT-mongodb # 指定容器名稱
+    ports:
+      - "27017:27017" # 將主機的 27017 端口映射到容器的 27017 端口
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin # MongoDB root 使用者名稱
       - MONGO_INITDB_ROOT_PASSWORD=admin # root 使用者密碼
@@ -169,11 +197,17 @@ services: # 定義所有要運行的服務（容器）
       - RABBITMQ_DEFAULT_PASS=admin
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+      - ./config/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./config/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
     networks:
       - aiot-compose-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
-  
 
 # 定義持久化資料的 volumes
 volumes:
